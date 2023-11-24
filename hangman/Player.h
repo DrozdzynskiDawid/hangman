@@ -9,12 +9,13 @@ using namespace std;
 class Player {
     public:
         Player(int playerFd);
+    private:
         string nickname;
         int playerFd;
         int lifes;
         int points;
         string playerWord;
-
+    public:
         void setNickname(string nickname);
         void setPlayerFd(int playerFd);
         void setLifes(int lifes);

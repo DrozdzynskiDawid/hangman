@@ -43,7 +43,7 @@ void prepareServerSocket() {
 }
 
 string getRandomWord() {
-    default_random_engine gen((std::random_device()()));
+    default_random_engine gen((random_device()()));
     int fd = open(FILE_WITH_WORDS, O_RDONLY);
     if (fd == -1) {
         perror("Błąd podczas otwierania pliku ze słowami!");
