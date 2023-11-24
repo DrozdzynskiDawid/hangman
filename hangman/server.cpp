@@ -8,17 +8,19 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unordered_set>
+#include <random>
 
 using namespace std;
 
 unordered_set<Player*> players;
 
 string getRandomWord() {
+    default_random_engine gen((std::random_device()()));
     int fd = open(FILE_WITH_WORDS, O_RDONLY);
     if (fd == -1) {
         perror("Błąd podczas otwierania pliku ze słowami!");
     }
-
+    // counting lines in file
     char c;
     int lineCounter = 1, n = 0;
     while ((read(fd, &c, 1)) > 0) {
@@ -27,10 +29,12 @@ string getRandomWord() {
             lineCounter++;
         }
     }
-
-    srand((unsigned) time(NULL));
-    int random = 1 + (rand() % lineCounter);
-
+    if (lineCounter == 1) {
+        printf("Plik ze słowami jest pusty!");
+    }
+    // getting random word
+    uniform_int_distribution<uint8_t> dist(1, lineCounter);
+    int random = dist(gen);
     string word;
     lseek(fd,-n,SEEK_END);
     while ((read(fd, &c, 1)) > 0) {
