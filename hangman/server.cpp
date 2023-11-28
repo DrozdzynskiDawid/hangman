@@ -19,6 +19,7 @@ using namespace std;
 
 unordered_set<Player*> players;
 int serverFd;
+string word = "";
 
 void setReuseAddr(int sock){
     const int one = 1;
@@ -80,6 +81,16 @@ string getRandomWord() {
     return word;
 }
 
+bool findLetterInWord(char letter) {
+    size_t pos = word.find(letter);
+    if (pos != string::npos) {
+        cout << "Letter: " << letter << " found in word: " << word << endl;
+        return true;
+    }
+    cout << "Letter: " << letter << " not found in word: " << word << endl;
+    return false;
+}
+
 void closeServer() {
     close(serverFd);
     for (Player* p: players) {
@@ -100,12 +111,20 @@ void handleClient(int fd, epoll_event ee) {
         char buf[256];
         read(fd,&buf,256);
         printf(" %s\n", buf);
+        // test finding letter
+        char letter = 'a';
+        bool letterInWord = findLetterInWord(letter);
+        if(letterInWord) write(fd, "OK", 3);
+        
         write(fd, "Hello", 5);
         return;
     }
 }
 
 void serverLoop() {
+    // test word
+    word = getRandomWord();
+    cout << "Random word from file: " << word << endl;
     // epoll
     int epollFd = epoll_create1(0);
     epoll_event ee;
@@ -132,9 +151,9 @@ void serverLoop() {
         else {
             handleClient(ee.data.fd, ee);
         }
-        for (Player* p: players) {
-            cout << "Player lifes: " << p->getLifes() << "Player nick" << p->getNickname() << endl;
-        }
+        // for (Player* p: players) {
+        //     cout << "Player lifes: " << p->getLifes() << "Player nick" << p->getNickname() << endl;
+        // }
     }
 }
 
@@ -145,10 +164,6 @@ int main(int argc, char* argv[]) {
     // server socket creating
     prepareServerSocket();
     error(0,0,"serverFd: %d", serverFd);
-
-    // test word
-    string word = getRandomWord();
-    cout << "Random word from file:" << word << endl;
 
     serverLoop();
 }
