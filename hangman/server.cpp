@@ -163,7 +163,7 @@ void endGame() {
 }
 
 void sendScoreboard() {
-    string score = "NICK:\tLIFES:\tPOINTS:\t\t";
+    string score = "NICK:\tLIFES:\tPOINTS:\t\t--------------------------------------\t\t";
     for (Player* p: players) {
         score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
     }
@@ -237,7 +237,8 @@ void handleClient(int fd, epoll_event ee) {
                             if (word == p->getPlayerWord()) {
                                 writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
                                 writeMessageToClient(fd, "END", "player ended game");
-                                playersAlive--;
+                                endGame();
+                                return;
                             }
                         }
                         else {

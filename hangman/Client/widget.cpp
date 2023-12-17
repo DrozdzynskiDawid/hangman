@@ -115,6 +115,7 @@ void Widget::readyRead()
                 msgBox->exec();
 
                 ui->startGameButton->setEnabled(true);
+                ui->letterGroup->setDisabled(true);
                 ui->scoreText->setText("");
                 ui->wordText->setText("");
                 ui->msgsTextEdit->setText("");
