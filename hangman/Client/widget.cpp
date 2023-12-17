@@ -101,7 +101,9 @@ void Widget::readyRead()
                 ui->letterGroup->setDisabled(true);
             }
             else if (message.getCmd() == "B") {
-                QString score = QString::fromStdString(message.getMsg());
+                // building scoreboard
+                QString score = "NICK:\tLIFES:\tPOINTS:\t\t";
+                score += QString::fromStdString(message.getMsg());
                 score.replace("\t\t", "\n");
                 ui->scoreText->setText(score);
             }

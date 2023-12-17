@@ -160,10 +160,11 @@ void endGame() {
     for (Player* p: players) {
         writeMessageToClient(p->getPlayerFd(), "RESULT", winner->getNickname());
     }
+    gameInProgress = false;
 }
 
 void sendScoreboard() {
-    string score = "NICK:\tLIFES:\tPOINTS:\t\t--------------------------------------\t\t";
+    string score = "";
     for (Player* p: players) {
         score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
     }
