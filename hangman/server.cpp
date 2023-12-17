@@ -22,6 +22,7 @@ unordered_set<Player*> players;
 int serverFd;
 string word = "";
 bool gameInProgress = false;
+int playersAlive = 0;
 
 void setReuseAddr(int sock){
     const int one = 1;
@@ -124,6 +125,7 @@ void handleSIGPIPE(int signum) {
 
 void startGame() {
     gameInProgress = true;
+    playersAlive = players.size();
     cout << "Game started!" << endl;
     // random word
     word = getRandomWord();
@@ -141,6 +143,33 @@ void startGame() {
         p->setPlayerWord(playerWord);
         writeMessageToClient(p->getPlayerFd(), "INFO", "GAME STARTED!");
         writeMessageToClient(p->getPlayerFd(), "WORD", p->getPlayerWord());
+    }
+}
+
+void endGame() {
+    Player* winner;
+    int maxPoints = 0;
+    // getting winner
+    for (Player* p: players) {
+        if (p->getPoints() > maxPoints) {
+            maxPoints = p->getPoints();
+            winner = p;
+        }
+    }
+
+    for (Player* p: players) {
+        writeMessageToClient(p->getPlayerFd(), "RESULT", winner->getNickname());
+    }
+}
+
+void sendScoreboard() {
+    string score = "NICK:\tLIFES:\tPOINTS:\t\t";
+    for (Player* p: players) {
+        score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
+    }
+    // cout << score << endl;
+    for (Player* p: players) {
+        writeMessageToClient(p->getPlayerFd(), "SCOREBOARD", score);
     }
 }
 
@@ -179,6 +208,9 @@ void handleClient(int fd, epoll_event ee) {
                 string minimal = to_string(MINIMAL_PLAYERS_FOR_GAME);
                 writeMessageToClient(fd, "INFO", "You need at least " + minimal + " players to start a game!");  
             }
+            else if (gameInProgress) {
+                writeMessageToClient(fd, "INFO", "You need to wait because another game is actually in progress!");  
+            }
             else {
                 startGame();
             }
@@ -204,7 +236,8 @@ void handleClient(int fd, epoll_event ee) {
                             writeMessageToClient(fd, "WORD", p->getPlayerWord());
                             if (word == p->getPlayerWord()) {
                                 writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
-                                writeMessageToClient(fd, "END", "player lost");
+                                writeMessageToClient(fd, "END", "player ended game");
+                                playersAlive--;
                             }
                         }
                         else {
@@ -223,9 +256,14 @@ void handleClient(int fd, epoll_event ee) {
                             writeMessageToClient(fd, "INFO", "No lifes remaining! Your final score is: " + to_string(p->getPoints()) + 
                             ". Word was: " + word);
                             writeMessageToClient(fd, "END", "player lost");
+                            playersAlive--;
                         }
                     }
                 }
+            }
+            sendScoreboard();
+            if (playersAlive == 0) {
+                endGame();
             }
         }
 
@@ -264,6 +302,11 @@ void serverLoop() {
         }
         if (ee.events & EPOLLRDHUP) {
             shutdown(ee.data.fd,O_RDWR);
+            for(Player* p: players) { 
+                if (p->getPlayerFd() == ee.data.fd) {
+                    delete p;
+                }
+            }
         }
     }
 }

@@ -37,8 +37,14 @@ class Message {
             if(cmd == "LETTER") {
                 this->cmd = "L";
             }
+            if(cmd == "SCOREBOARD") {
+                this->cmd = "B";
+            }
             if(cmd == "END") {
                 this->cmd = "E";
+            }
+            if(cmd == "RESULT") {
+                this->cmd = "R";
             }
         }
 

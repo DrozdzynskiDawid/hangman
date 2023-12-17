@@ -28,15 +28,19 @@ Widget::~Widget()
 
 void Widget::on_connectBtn_clicked()
 {
-    QString port = SERVER_PORT;
-    socket->connectToHost(SERVER_ADDRESS,port.toInt());
+    if (ui->nickLineEdit->text().trimmed() != "") {
+        QString port = SERVER_PORT;
+        socket->connectToHost(SERVER_ADDRESS, port.toInt());
+    }
 }
 
 void Widget::socketConnected()
 {
     QMessageBox* msgBox = new QMessageBox(this);
+    msgBox->setMinimumSize(200,100);
     msgBox->setWindowTitle("Connected!");
     msgBox->setText("Connected to server!");
+    msgBox->setStyleSheet("QLabel{ font-size: 20px; text-align: center; }");
     msgBox->exec();
 
     QString nick = ui->nickLineEdit->text().trimmed();
@@ -95,6 +99,25 @@ void Widget::readyRead()
             }
             else if (message.getCmd() == "E") {
                 ui->letterGroup->setDisabled(true);
+            }
+            else if (message.getCmd() == "B") {
+                QString score = QString::fromStdString(message.getMsg());
+                score.replace("\t\t", "\n");
+                ui->scoreText->setText(score);
+            }
+            else if (message.getCmd() == "R") {
+                QString winner = QString::fromStdString(message.getMsg());
+                QMessageBox* msgBox = new QMessageBox(this);
+                msgBox->setMinimumSize(200,100);
+                msgBox->setWindowTitle("Winner");
+                msgBox->setText("Winner is: " + winner + "\nYou can start another game now!");
+                msgBox->setStyleSheet("QLabel{ font-size: 20px; text-align: center; }");
+                msgBox->exec();
+
+                ui->startGameButton->setEnabled(true);
+                ui->scoreText->setText("");
+                ui->wordText->setText("");
+                ui->msgsTextEdit->setText("");
             }
         }
     }

@@ -19,11 +19,17 @@
   <property name="windowTitle">
    <string>Hangman</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
       <widget class="QGroupBox" name="connectGroup">
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
        <property name="title">
         <string/>
        </property>
@@ -31,6 +37,12 @@
         <item>
          <widget class="QLineEdit" name="nickLineEdit">
           <property name="text">
+           <string/>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+          <property name="placeholderText">
            <string>nickname</string>
           </property>
          </widget>
@@ -38,7 +50,7 @@
         <item>
          <widget class="QPushButton" name="connectBtn">
           <property name="text">
-           <string>connect</string>
+           <string>CONNECT</string>
           </property>
          </widget>
         </item>
@@ -48,7 +60,7 @@
      <item>
       <widget class="QPushButton" name="startGameButton">
        <property name="text">
-        <string>Start Game</string>
+        <string>START GAME</string>
        </property>
       </widget>
      </item>
@@ -69,16 +81,30 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="styleSheet">
+           <string notr="true">background-color:lightgreen;
+</string>
+          </property>
           <property name="maxLength">
            <number>1</number>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
           </property>
+          <property name="placeholderText">
+           <string>letter</string>
+          </property>
          </widget>
         </item>
         <item>
          <widget class="QPushButton" name="sendBtn">
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color:lightgreen;
+</string>
+          </property>
           <property name="text">
            <string>SEND LETTER</string>
           </property>
@@ -108,6 +134,13 @@
           <property name="enabled">
            <bool>false</bool>
           </property>
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <italic>false</italic>
+            <bold>true</bold>
+           </font>
+          </property>
          </widget>
         </item>
        </layout>
@@ -124,6 +157,9 @@
        <layout class="QGridLayout" name="gridLayout">
         <item row="3" column="0" colspan="2">
          <widget class="QTextEdit" name="msgsTextEdit">
+          <property name="verticalScrollBarPolicy">
+           <enum>Qt::ScrollBarAsNeeded</enum>
+          </property>
           <property name="readOnly">
            <bool>true</bool>
           </property>
