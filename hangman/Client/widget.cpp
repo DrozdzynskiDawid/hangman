@@ -62,38 +62,41 @@ void Widget::socketDisconnected()
 
 void Widget::readyRead()
 {
-    QString txt = "";
-    do {
-        txt += socket->readAll();
-    }
-    while (txt.back() != '\n');
+    while(socket->bytesAvailable()) {
+        buf += socket->readAll();
+        while (buf.contains(MESSAGE_DELIMITER)) {
+            QString txt = buf.section(MESSAGE_DELIMITER, 0, 0);
+            buf = buf.section(MESSAGE_DELIMITER, 1);
 
-    // creating message object
-    Message message;
-    std::string text = txt.toStdString();
-    message.deserialize(text);
+            // creating message object
+            Message message;
+            std::string text = txt.toStdString();
+            message.deserialize(text);
 
-    // diffrent commands handling
-    if (message.getCmd() == "I") {
-        ui->msgsTextEdit->append(QString::fromStdString(message.getMsg()));
-    }
-    else if (message.getCmd() == "W") {
-        QString word = QString::fromStdString(message.getMsg());
 
-        // adding spaces for better display
-        QString displayWord = "";
-        for (int i=0; i<word.length(); i++) {
-            displayWord += word[i];
-            displayWord += " ";
+            // different commands handling
+            if (message.getCmd() == "I") {
+                ui->msgsTextEdit->append(QString::fromStdString(message.getMsg()));
+            }
+            else if (message.getCmd() == "W") {
+                QString word = QString::fromStdString(message.getMsg());
+
+                // adding spaces for better display
+                QString displayWord = "";
+                for (int i=0; i<word.length(); i++) {
+                    displayWord += word[i];
+                    displayWord += " ";
+                }
+                ui->wordText->setText("YOUR WORD:\n\n");
+                ui->wordText->setAlignment(Qt::AlignCenter);
+                ui->wordText->append(displayWord);
+                ui->letterGroup->setEnabled(true);
+                ui->startGameButton->setDisabled(true);
+            }
+            else if (message.getCmd() == "E") {
+                ui->letterGroup->setDisabled(true);
+            }
         }
-        ui->wordText->setText("YOUR WORD:\n\n\n");
-        ui->wordText->setAlignment(Qt::AlignCenter);
-        ui->wordText->append(displayWord);
-        ui->letterGroup->setEnabled(true);
-        ui->startGameButton->setDisabled(true);
-    }
-    else if (message.getCmd() == "E") {
-        ui->letterGroup->setDisabled(true);
     }
 }
 

@@ -55,6 +55,11 @@ class Message {
             this->cmd = msg[0];
             msg = msg.substr(1);
             this->msg = msg;
+            string del = MESSAGE_DELIMITER;
+            size_t pos = this->msg.find(del);
+            if (pos != string::npos) {
+                this->msg.replace(pos, del.size(), "");
+            }
         }  
 
         size_t getSize() {

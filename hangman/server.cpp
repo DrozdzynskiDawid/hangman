@@ -139,6 +139,7 @@ void startGame() {
         p->setLifes(PLAYER_LIFES);
         p->setPoints(0);
         p->setPlayerWord(playerWord);
+        writeMessageToClient(p->getPlayerFd(), "INFO", "GAME STARTED!");
         writeMessageToClient(p->getPlayerFd(), "WORD", p->getPlayerWord());
     }
 }
@@ -191,29 +192,36 @@ void handleClient(int fd, epoll_event ee) {
                 for(Player* p: players) { 
                     if (p->getPlayerFd() == fd) {
                         string playerWord = p->getPlayerWord();
-                        for(int i=0; i<word.size(); i++) {
-                            if (word[i] == letter && playerWord[i] != letter) {
-                                playerWord[i] = letter;
-                                p->setPoints(p->getPoints() + 1);
+                        if (playerWord.find(letter) == string::npos) {
+                            for(int i=0; i<word.size(); i++) {
+                                if (word[i] == letter && playerWord[i] != letter) {
+                                    playerWord[i] = letter;
+                                    p->setPoints(p->getPoints() + 1);
+                                }
+                            }
+                            p->setPlayerWord(playerWord);
+                            cout<<p->getPoints()<<endl;
+                            writeMessageToClient(fd, "WORD", p->getPlayerWord());
+                            if (word == p->getPlayerWord()) {
+                                writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
+                                writeMessageToClient(fd, "END", "player lost");
                             }
                         }
-                        p->setPlayerWord(playerWord);
-                        cout<<p->getPoints()<<endl;
-                        writeMessageToClient(fd, "WORD", p->getPlayerWord());
-                        if (word == p->getPlayerWord()) {
-                            writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
-                            writeMessageToClient(fd, "END", "player lost");
+                        else {
+                            writeMessageToClient(fd, "INFO", "You've guessed correctly this letter earlier!");
                         }
                     }
                 }
             }
             else {
-                writeMessageToClient(fd, "INFO", "Letter is not in word!");
+                string letterString = string(1, letter);
+                writeMessageToClient(fd, "INFO", letterString + " - letter is not in word!");
                 for(Player* p: players) { 
                     if (p->getPlayerFd() == fd) {
                         p->setLifes(p->getLifes() - 1);
                         if (p->getLifes() == 0) {
-                            writeMessageToClient(fd, "INFO", "No lifes remaining! Your final score is: " + to_string(p->getPoints()));
+                            writeMessageToClient(fd, "INFO", "No lifes remaining! Your final score is: " + to_string(p->getPoints()) + 
+                            ". Word was: " + word);
                             writeMessageToClient(fd, "END", "player lost");
                         }
                     }

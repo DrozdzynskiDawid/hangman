@@ -24,6 +24,7 @@ public:
     void socketDisconnected();
     void socketError();
     void readyRead();
+    QString buf = "";
 
 private slots:
     void on_connectBtn_clicked();
