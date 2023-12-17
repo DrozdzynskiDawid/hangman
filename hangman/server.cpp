@@ -1,8 +1,8 @@
 #include "./config/config.h"
 #include "Player.h"
+#include "Message.h"
 #include <iostream>
 #include <stdio.h>
-#include <string>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -14,12 +14,14 @@
 #include <netdb.h>
 #include <error.h>
 #include <signal.h>
+#include <string.h>
 
 using namespace std;
 
 unordered_set<Player*> players;
 int serverFd;
 string word = "";
+bool gameInProgress = false;
 
 void setReuseAddr(int sock){
     const int one = 1;
@@ -41,6 +43,17 @@ void prepareServerSocket() {
     freeaddrinfo(resolved);
     int resListen = listen(serverFd, 5);
     if (resListen) error(1,errno,"Failed to listen");
+}
+
+void writeMessageToClient(int fd, string cmd, string msg) {
+    Message message;
+    message.setMsg(msg);
+    message.setCmd(cmd);
+    string serialized = message.serialize();
+    cout << "Message to client: " << fd << " - " << serialized << endl;
+    int size = serialized.size();
+    const char* serializedMsg = serialized.c_str();
+    write(fd, serializedMsg, size);
 }
 
 string getRandomWord() {
@@ -105,26 +118,114 @@ void handleCtrlC(int signum) {
     closeServer();
 }
 
+void handleSIGPIPE(int signum) {
+    cout << "Klient się rozłączył!";
+}
+
+void startGame() {
+    gameInProgress = true;
+    cout << "Game started!" << endl;
+    // random word
+    word = getRandomWord();
+    cout << "Random word from file: " << word << endl;
+    int size = word.size();
+    char c = '_';
+    string playerWord;
+    for (int i=0; i<size; i++) {
+        playerWord += c;
+    }
+    cout<<playerWord<<endl;
+    for (Player* p: players) {
+        p->setLifes(PLAYER_LIFES);
+        p->setPoints(0);
+        p->setPlayerWord(playerWord);
+        writeMessageToClient(p->getPlayerFd(), "WORD", p->getPlayerWord());
+    }
+}
+
 void handleClient(int fd, epoll_event ee) {
     if (ee.events & EPOLLIN) {
-        cout << "Message from client: " << ee.data.fd;
-        char buf[256];
+        cout << "Message from client: " << ee.data.fd << " - ";
+        char buf[256] = "";
         read(fd,&buf,256);
-        printf(" %s\n", buf);
-        // test finding letter
-        char letter = 'a';
-        bool letterInWord = findLetterInWord(letter);
-        if(letterInWord) write(fd, "OK", 3);
-        
-        write(fd, "Hello", 5);
+        Message msg;
+        msg.deserialize(buf);
+        cout<< msg.getCmd()<<" "<<msg.getMsg()<<endl;
+
+        // setting nickname
+        if(msg.getCmd() == "N") {
+            string nick = msg.getMsg();
+            if(players.size() > 0) {
+                for(Player* p: players) {
+                    if (p->getNickname() == nick) {
+                        writeMessageToClient(fd, "INFO", "Nickname is already taken!");  
+                        shutdown(fd,O_RDWR);
+                        delete p;
+                    }
+                }
+            }
+            for(Player* p: players) { 
+                if (p->getPlayerFd() == fd) {
+                    p->setNickname(nick);
+                }
+            }
+            writeMessageToClient(fd, "INFO", "Nickname OK!");  
+        }
+
+        // starting game
+        if(msg.getCmd() == "S") {
+            if(players.size() < MINIMAL_PLAYERS_FOR_GAME) {
+                string minimal = to_string(MINIMAL_PLAYERS_FOR_GAME);
+                writeMessageToClient(fd, "INFO", "You need at least " + minimal + " players to start a game!");  
+            }
+            else {
+                startGame();
+            }
+        }
+
+        // guessing letter
+        if(msg.getCmd() == "L") {
+            char letter = msg.getMsg()[0];
+            bool letterInWord = findLetterInWord(letter);
+            if(letterInWord) {
+                for(Player* p: players) { 
+                    if (p->getPlayerFd() == fd) {
+                        string playerWord = p->getPlayerWord();
+                        for(int i=0; i<word.size(); i++) {
+                            if (word[i] == letter && playerWord[i] != letter) {
+                                playerWord[i] = letter;
+                                p->setPoints(p->getPoints() + 1);
+                            }
+                        }
+                        p->setPlayerWord(playerWord);
+                        cout<<p->getPoints()<<endl;
+                        writeMessageToClient(fd, "WORD", p->getPlayerWord());
+                        if (word == p->getPlayerWord()) {
+                            writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
+                            writeMessageToClient(fd, "END", "player lost");
+                        }
+                    }
+                }
+            }
+            else {
+                writeMessageToClient(fd, "INFO", "Letter is not in word!");
+                for(Player* p: players) { 
+                    if (p->getPlayerFd() == fd) {
+                        p->setLifes(p->getLifes() - 1);
+                        if (p->getLifes() == 0) {
+                            writeMessageToClient(fd, "INFO", "No lifes remaining! Your final score is: " + to_string(p->getPoints()));
+                            writeMessageToClient(fd, "END", "player lost");
+                        }
+                    }
+                }
+            }
+        }
+
         return;
     }
 }
 
 void serverLoop() {
-    // test word
-    word = getRandomWord();
-    cout << "Random word from file: " << word << endl;
     // epoll
     int epollFd = epoll_create1(0);
     epoll_event ee;
@@ -137,7 +238,8 @@ void serverLoop() {
         if (number == -1) {
             error(0,errno,"epoll_wait failed");
         }
-        if (ee.events & EPOLLIN && ee.data.fd == serverFd) {
+        if (ee.events & EPOLLIN) {
+            if (ee.data.fd == serverFd) {
             sockaddr_in clientAddr{};
             socklen_t clientAddrSize = sizeof(clientAddr);
             int clientFd = accept(serverFd, (sockaddr*) &clientAddr, &clientAddrSize);
@@ -147,19 +249,21 @@ void serverLoop() {
             ee1.events = EPOLLIN;
             ee1.data.fd = clientFd;
             epoll_ctl(epollFd, EPOLL_CTL_ADD, clientFd, &ee1);
+            }
+            else {
+                handleClient(ee.data.fd, ee);
+            }
         }
-        else {
-            handleClient(ee.data.fd, ee);
+        if (ee.events & EPOLLRDHUP) {
+            shutdown(ee.data.fd,O_RDWR);
         }
-        // for (Player* p: players) {
-        //     cout << "Player lifes: " << p->getLifes() << "Player nick" << p->getNickname() << endl;
-        // }
     }
 }
 
 int main(int argc, char* argv[]) {
-    // handle ctrl+c
+    // handle ctrl+c and sigpipe
     signal(SIGINT, handleCtrlC);
+    signal(SIGPIPE, handleSIGPIPE);
 
     // server socket creating
     prepareServerSocket();
