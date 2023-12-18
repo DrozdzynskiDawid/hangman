@@ -213,6 +213,7 @@ void handleClient(int fd, epoll_event ee) {
                     if (p->getNickname() == nick) {
                         writeMessageToClient(fd, "INFO", "Nickname is already taken!");  
                         disconnectClient(fd);
+                        return;
                     }
                 }
             }

@@ -66,11 +66,8 @@ class Message {
             if (pos != string::npos) {
                 this->msg.replace(pos, del.size(), "");
             }
-        }  
-
-        size_t getSize() {
-            return cmd.size() + msg.size() + string(MESSAGE_DELIMITER).size();
         }
+        
 };
 
 #endif

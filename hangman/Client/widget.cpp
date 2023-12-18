@@ -43,20 +43,18 @@ void Widget::socketConnected()
     msgBox->setStyleSheet("QLabel{ font-size: 20px; text-align: center; }");
     msgBox->exec();
 
+    // send set nickname request
     QString nick = ui->nickLineEdit->text().trimmed();
     Message message;
     message.setCmd("NICK");
     message.setMsg(nick.toStdString());
     QString serialized = QString::fromStdString(message.serialize());
     socket->write(serialized.toUtf8());
-
-    ui->connectGroup->setDisabled(true);
-    ui->startGameButton->setDisabled(false);
 }
 
 void Widget::socketDisconnected()
 {
-    ui->msgsTextEdit->append("disconnected");
+    ui->msgsTextEdit->append("You were disconnected!");
 }
 
 // void Widget::socketError()
@@ -77,11 +75,19 @@ void Widget::readyRead()
             std::string text = txt.toStdString();
             message.deserialize(text);
 
-
             // different commands handling
+
+            // INFO
             if (message.getCmd() == "I") {
                 ui->msgsTextEdit->append(QString::fromStdString(message.getMsg()));
+
+                // unblock fields if nickname is accepted
+                if (message.getMsg() == "Nickname OK!") {
+                    ui->connectGroup->setDisabled(true);
+                    ui->startGameButton->setEnabled(true);
+                }
             }
+            // WORD DISPLAY
             else if (message.getCmd() == "W") {
                 QString word = QString::fromStdString(message.getMsg());
 
@@ -97,9 +103,11 @@ void Widget::readyRead()
                 ui->letterGroup->setEnabled(true);
                 ui->startGameButton->setDisabled(true);
             }
+            // END OF GAME
             else if (message.getCmd() == "E") {
                 ui->letterGroup->setDisabled(true);
             }
+            // SCOREBOARD DISPLAY
             else if (message.getCmd() == "B") {
                 // building scoreboard
                 QString score = "NICK:\tLIFES:\tPOINTS:\t\t";
@@ -107,6 +115,7 @@ void Widget::readyRead()
                 score.replace("\t\t", "\n");
                 ui->scoreText->setText(score);
             }
+            // WINNER MESSAGE BOX
             else if (message.getCmd() == "R") {
                 QMessageBox* msgBox = new QMessageBox(this);
                 QString winner = QString::fromStdString(message.getMsg());
@@ -129,6 +138,7 @@ void Widget::readyRead()
 
 void Widget::on_startGameButton_clicked()
 {
+    // send start game request
     Message message;
     message.setCmd("START");
     message.setMsg("Start game clicked");
@@ -139,6 +149,7 @@ void Widget::on_startGameButton_clicked()
 
 void Widget::on_sendBtn_clicked()
 {
+    // prepare and send letter to server
     if (ui->letterLineEdit->text().length() == 1) {
         QChar letter = ui->letterLineEdit->text().trimmed()[0];
         if (letter.isLetter()) {
