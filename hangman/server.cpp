@@ -158,18 +158,23 @@ void startGame() {
 }
 
 void endGame() {
-    Player* winner;
     int maxPoints = 0;
-    // getting winner
+    // getting winner or winners
     for (Player* p: players) {
         if (p->getPoints() > maxPoints) {
             maxPoints = p->getPoints();
-            winner = p;
+        }
+    }
+
+    string winnersList = "";
+    for (Player* p: players) {
+        if (p->getPoints() == maxPoints) {
+            winnersList += p->getNickname() + ",";
         }
     }
 
     for (Player* p: players) {
-        writeMessageToClient(p->getPlayerFd(), "RESULT", winner->getNickname());
+        writeMessageToClient(p->getPlayerFd(), "RESULT", winnersList);
     }
     gameInProgress = false;
 }

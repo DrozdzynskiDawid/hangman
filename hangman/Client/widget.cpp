@@ -108,8 +108,9 @@ void Widget::readyRead()
                 ui->scoreText->setText(score);
             }
             else if (message.getCmd() == "R") {
-                QString winner = QString::fromStdString(message.getMsg());
                 QMessageBox* msgBox = new QMessageBox(this);
+                QString winner = QString::fromStdString(message.getMsg());
+                winner.chop(1);     //last ',' chopped
                 msgBox->setMinimumSize(200,100);
                 msgBox->setWindowTitle("Winner");
                 msgBox->setText("Winner is: " + winner + "\nYou can start another game now!");
