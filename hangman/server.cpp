@@ -20,6 +20,7 @@ using namespace std;
 
 unordered_set<Player*> players;
 int serverFd;
+int epollFd;
 string word = "";
 bool gameInProgress = false;
 int playersAlive = 0;
@@ -109,6 +110,7 @@ void closeServer() {
     close(serverFd);
     for (Player* p: players) {
         shutdown(p->getPlayerFd(), O_RDWR);
+        close(p->getPlayerFd());
         delete p;
     }
     error(0,0,"Closing server!");
@@ -119,8 +121,17 @@ void handleCtrlC(int signum) {
     closeServer();
 }
 
-void handleSIGPIPE(int signum) {
-    cout << "Klient się rozłączył!";
+void disconnectClient(int fd) {
+    cout << "Client " << fd << " disconnected!" << endl;
+    for (Player* p: players) {
+        if (p->getPlayerFd() == fd) {
+            delete p;
+        }
+    }
+    epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, nullptr);
+    shutdown(fd, O_RDWR);
+    close(fd);
+
 }
 
 void startGame() {
@@ -176,9 +187,15 @@ void sendScoreboard() {
 
 void handleClient(int fd, epoll_event ee) {
     if (ee.events & EPOLLIN) {
-        cout << "Message from client: " << ee.data.fd << " - ";
+        cout << "Message from client: " << fd << " - ";
         char buf[256] = "";
-        read(fd,&buf,256);
+
+        if (read(fd,&buf,256) <= 0) {
+            disconnectClient(fd);
+            return;
+        }
+
+        // creating message
         Message msg;
         msg.deserialize(buf);
         cout<< msg.getCmd()<<" "<<msg.getMsg()<<endl;
@@ -190,8 +207,7 @@ void handleClient(int fd, epoll_event ee) {
                 for(Player* p: players) {
                     if (p->getNickname() == nick) {
                         writeMessageToClient(fd, "INFO", "Nickname is already taken!");  
-                        shutdown(fd,O_RDWR);
-                        delete p;
+                        disconnectClient(fd);
                     }
                 }
             }
@@ -268,14 +284,18 @@ void handleClient(int fd, epoll_event ee) {
                 endGame();
             }
         }
-
-        return;
     }
+
+    if (ee.events & ~EPOLLIN) {
+        disconnectClient(fd);
+    }
+
+    return;
 }
 
 void serverLoop() {
     // epoll
-    int epollFd = epoll_create1(0);
+    epollFd = epoll_create1(0);
     epoll_event ee;
     ee.events = EPOLLIN;
     ee.data.fd = serverFd;
@@ -302,21 +322,12 @@ void serverLoop() {
                 handleClient(ee.data.fd, ee);
             }
         }
-        if (ee.events & EPOLLRDHUP) {
-            shutdown(ee.data.fd,O_RDWR);
-            for(Player* p: players) { 
-                if (p->getPlayerFd() == ee.data.fd) {
-                    delete p;
-                }
-            }
-        }
     }
 }
 
 int main(int argc, char* argv[]) {
-    // handle ctrl+c and sigpipe
+    // handle ctrl+c
     signal(SIGINT, handleCtrlC);
-    signal(SIGPIPE, handleSIGPIPE);
 
     // server socket creating
     prepareServerSocket();
