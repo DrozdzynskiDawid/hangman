@@ -58,6 +58,12 @@ void writeMessageToClient(int fd, string cmd, string msg) {
     write(fd, serializedMsg, size);
 }
 
+void writeMessageToAll(string cmd, string msg) {
+    for (Player* p: players) {
+        writeMessageToClient(p->getPlayerFd(), cmd, msg);
+    }
+}
+
 string getRandomWord() {
     default_random_engine gen((random_device()()));
     int fd = open(FILE_WITH_WORDS, O_RDONLY);
@@ -131,7 +137,6 @@ void disconnectClient(int fd) {
     epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, nullptr);
     shutdown(fd, O_RDWR);
     close(fd);
-
 }
 
 void startGame() {
@@ -152,9 +157,9 @@ void startGame() {
         p->setLifes(PLAYER_LIFES);
         p->setPoints(0);
         p->setPlayerWord(playerWord);
-        writeMessageToClient(p->getPlayerFd(), "INFO", "GAME STARTED!");
         writeMessageToClient(p->getPlayerFd(), "WORD", p->getPlayerWord());
     }
+    writeMessageToAll("INFO", "GAME STARTED!");
 }
 
 void endGame() {
@@ -173,9 +178,7 @@ void endGame() {
         }
     }
 
-    for (Player* p: players) {
-        writeMessageToClient(p->getPlayerFd(), "RESULT", winnersList);
-    }
+    writeMessageToAll("RESULT", winnersList);
     gameInProgress = false;
 }
 
@@ -185,9 +188,7 @@ void sendScoreboard() {
         score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
     }
     // cout << score << endl;
-    for (Player* p: players) {
-        writeMessageToClient(p->getPlayerFd(), "SCOREBOARD", score);
-    }
+    writeMessageToAll("SCOREBOARD", score);
 }
 
 void handleClient(int fd, epoll_event ee) {
@@ -255,7 +256,7 @@ void handleClient(int fd, epoll_event ee) {
                                 }
                             }
                             p->setPlayerWord(playerWord);
-                            cout<<p->getPoints()<<endl;
+                            //cout<<p->getPoints()<<endl;
                             writeMessageToClient(fd, "WORD", p->getPlayerWord());
                             if (word == p->getPlayerWord()) {
                                 writeMessageToClient(fd, "INFO", "You revealed whole word! Your final score is: " + to_string(p->getPoints()));
