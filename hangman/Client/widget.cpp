@@ -15,6 +15,16 @@ Widget::Widget(QWidget *parent)
     connect(socket, &QTcpSocket::disconnected, this, &Widget::socketDisconnected);
     //connect(socket, &QTcpSocket::errorOccurred, this, &Widget::socketError);
     connect(socket, &QTcpSocket::readyRead, this, &Widget::readyRead);
+    connect(&timer, &QTimer::timeout, [&]{
+        QTime currentTime = ui->timeEdit->time();
+        if (currentTime > QTime(0, 0, 0)) {
+            currentTime = currentTime.addSecs(-1);
+            ui->timeEdit->setTime(currentTime);
+        }
+        else {
+            timer.stop();
+        }
+    });
     ui->wordText->setText("YOUR WORD:");
     ui->wordText->setAlignment(Qt::AlignCenter);
     ui->startGameButton->setDisabled(true);
@@ -85,6 +95,13 @@ void Widget::readyRead()
                 if (message.getMsg() == "Nickname OK!") {
                     ui->connectGroup->setDisabled(true);
                     ui->startGameButton->setEnabled(true);
+                }
+                //set time on game started
+
+                if (message.getMsg() == "GAME STARTED!") {
+                    ui->timeEdit->setTime(QTime(0, GAME_TIME_MINUTES, 0));
+                    timer.start();
+                    timer.setInterval(1000);
                 }
             }
             // WORD DISPLAY

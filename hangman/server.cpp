@@ -15,6 +15,7 @@
 #include <error.h>
 #include <signal.h>
 #include <string.h>
+#include <chrono>
 
 using namespace std;
 
@@ -24,6 +25,7 @@ int epollFd;
 string word = "";
 bool gameInProgress = false;
 int playersAlive = 0;
+auto startTime = chrono::system_clock::now();
 
 void setReuseAddr(int sock){
     const int one = 1;
@@ -119,6 +121,7 @@ void closeServer() {
         close(p->getPlayerFd());
         delete p;
     }
+    close(epollFd);
     error(0,0,"Closing server!");
     exit(1);
 }
@@ -141,6 +144,7 @@ void disconnectClient(int fd) {
 
 void startGame() {
     gameInProgress = true;
+    startTime = chrono::system_clock::now();
     playersAlive = players.size();
     cout << "Game started!" << endl;
     // random word
@@ -160,6 +164,7 @@ void startGame() {
         writeMessageToClient(p->getPlayerFd(), "WORD", p->getPlayerWord());
     }
     writeMessageToAll("INFO", "GAME STARTED!");
+    writeMessageToAll("INFO", "Time for game is " + to_string(GAME_TIME_MINUTES) + " minutes");
 }
 
 void endGame() {
@@ -233,7 +238,10 @@ void handleClient(int fd, epoll_event ee) {
                 writeMessageToClient(fd, "INFO", "You need at least " + minimal + " players to start a game!");  
             }
             else if (gameInProgress) {
-                writeMessageToClient(fd, "INFO", "You need to wait because another game is actually in progress!");  
+                writeMessageToClient(fd, "INFO", "You need to wait because another game is actually in progress!");
+                auto timeLeft = (chrono::system_clock::now().time_since_epoch() - startTime.time_since_epoch());
+                int seconds = GAME_TIME_MINUTES * 60 - chrono::duration_cast<chrono::seconds>(timeLeft).count();
+                writeMessageToClient(fd, "INFO", "Time in seconds left to end game: " + to_string(seconds));  
             }
             else {
                 startGame();
@@ -309,9 +317,19 @@ void serverLoop() {
     epoll_ctl(epollFd, EPOLL_CTL_ADD, serverFd, &ee);
 
     while (true) {
-        int number = epoll_wait(epollFd, &ee, 1, -1);
+        if ((chrono::system_clock::now() - startTime) >= chrono::minutes{GAME_TIME_MINUTES}
+                && gameInProgress) {
+            writeMessageToAll("INFO", "Time has expired! Game has ended.");
+            endGame();
+            continue;
+        }
+        int number = epoll_wait(epollFd, &ee, 1, 1000);
         if (number == -1) {
             error(0,errno,"epoll_wait failed");
+        }
+        if (number == 0) {
+            //error(0,errno,"epoll_wait timeout");
+            continue;
         }
         if (ee.events & EPOLLIN) {
             if (ee.data.fd == serverFd) {

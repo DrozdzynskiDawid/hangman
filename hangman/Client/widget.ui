@@ -114,6 +114,19 @@
       </widget>
      </item>
      <item>
+      <widget class="QTimeEdit" name="timeEdit">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="displayFormat">
+        <string>mm:ss</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="horizontalGroupBox">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>

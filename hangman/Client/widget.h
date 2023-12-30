@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QTcpSocket>
 #include <QMessageBox>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,10 +21,12 @@ public:
     ~Widget();
 
     QTcpSocket* socket;
+    QTimer timer;
     void socketConnected();
     void socketDisconnected();
     void socketError();
     void readyRead();
+    void timerTimeout();
     QString buf = "";
 
 private slots:
