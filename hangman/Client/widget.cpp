@@ -148,6 +148,8 @@ void Widget::readyRead()
                 ui->scoreText->setText("");
                 ui->wordText->setText("");
                 ui->msgsTextEdit->setText("");
+                timer.stop();
+                ui->timeEdit->setTime(QTime(0, 0, 0));
             }
         }
     }

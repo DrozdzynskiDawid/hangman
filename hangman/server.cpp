@@ -325,6 +325,7 @@ void serverLoop() {
     epoll_ctl(epollFd, EPOLL_CTL_ADD, serverFd, &ee);
 
     while (true) {
+        if (players.size() == 0) gameInProgress = false;
         if ((chrono::system_clock::now() - startTime) >= chrono::minutes{GAME_TIME_MINUTES}
                 && gameInProgress) {
             writeMessageToAll("INFO", "Time has expired! Game has ended.");
