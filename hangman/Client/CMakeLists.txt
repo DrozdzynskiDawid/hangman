@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 project(client)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_PREFIX_PATH "/home/dawid/Qt/6.6.1/gcc_64" ${CMAKE_PREFIX_PATH}) # ścieżka do Qt, może być inna
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -18,5 +19,6 @@ set(SRCS
 )
 
 add_executable(client ${SRCS})
+add_compile_options(-Wall -Wextra)
 
 target_link_libraries(client Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)

@@ -66,6 +66,15 @@ void writeMessageToAll(string cmd, string msg) {
     }
 }
 
+void sendScoreboard() {
+    string score = "";
+    for (Player* p: players) {
+        score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
+    }
+    // cout << score << endl;
+    writeMessageToAll("SCOREBOARD", score);
+}
+
 string getRandomWord() {
     default_random_engine gen((random_device()()));
     int fd = open(FILE_WITH_WORDS, O_RDONLY);
@@ -135,6 +144,7 @@ void disconnectClient(int fd) {
     for (Player* p: players) {
         if (p->getPlayerFd() == fd) {
             delete p;
+            playersAlive--;
         }
     }
     epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, nullptr);
@@ -165,6 +175,7 @@ void startGame() {
     }
     writeMessageToAll("INFO", "GAME STARTED!");
     writeMessageToAll("INFO", "Time for game is " + to_string(GAME_TIME_MINUTES) + " minutes");
+    sendScoreboard();
 }
 
 void endGame() {
@@ -185,15 +196,6 @@ void endGame() {
 
     writeMessageToAll("RESULT", winnersList);
     gameInProgress = false;
-}
-
-void sendScoreboard() {
-    string score = "";
-    for (Player* p: players) {
-        score += p->getNickname() + "\t" + to_string(p->getLifes()) + "\t" + to_string(p->getPoints()) + "\t\t";
-    }
-    // cout << score << endl;
-    writeMessageToAll("SCOREBOARD", score);
 }
 
 void handleClient(int fd, epoll_event ee) {
