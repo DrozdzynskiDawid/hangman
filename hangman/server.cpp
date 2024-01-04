@@ -57,7 +57,8 @@ void writeMessageToClient(int fd, string cmd, string msg) {
     cout << "Message to client: " << fd << " - " << serialized << endl;
     int size = serialized.size();
     const char* serializedMsg = serialized.c_str();
-    write(fd, serializedMsg, size);
+    int n = write(fd, serializedMsg, size);
+    if (n == 0) return;
 }
 
 void writeMessageToAll(string cmd, string msg) {
@@ -141,15 +142,19 @@ void handleCtrlC(int signum) {
 
 void disconnectClient(int fd) {
     cout << "Client " << fd << " disconnected!" << endl;
-    for (Player* p: players) {
+    for (auto it = players.begin(); it != players.end(); ++it) {
+        Player* p = *it;
         if (p->getPlayerFd() == fd) {
+            epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, nullptr);
+            shutdown(fd, O_RDWR);
+            close(fd);
+
+            it = players.erase(it);
             delete p;
             playersAlive--;
+            break;
         }
     }
-    epoll_ctl(epollFd, EPOLL_CTL_DEL, fd, nullptr);
-    shutdown(fd, O_RDWR);
-    close(fd);
 }
 
 void startGame() {
@@ -319,6 +324,7 @@ void serverLoop() {
     epoll_ctl(epollFd, EPOLL_CTL_ADD, serverFd, &ee);
 
     while (true) {
+        cout<<players.size();
         if ((chrono::system_clock::now() - startTime) >= chrono::minutes{GAME_TIME_MINUTES}
                 && gameInProgress) {
             writeMessageToAll("INFO", "Time has expired! Game has ended.");
