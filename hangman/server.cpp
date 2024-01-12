@@ -225,7 +225,7 @@ void handleClient(int fd, epoll_event ee) {
             if(players.size() > 0) {
                 for(Player* p: players) {
                     if (p->getNickname() == nick) {
-                        writeMessageToClient(fd, "INFO", "Nickname is already taken!");  
+                        writeMessageToClient(fd, "INFO", "Nickname is already taken! Please change your nickname!");  
                         disconnectClient(fd);
                         return;
                     }
@@ -243,7 +243,7 @@ void handleClient(int fd, epoll_event ee) {
         if(msg.getCmd() == "S") {
             if(players.size() < MINIMAL_PLAYERS_FOR_GAME) {
                 string minimal = to_string(MINIMAL_PLAYERS_FOR_GAME);
-                writeMessageToClient(fd, "INFO", "You need at least " + minimal + " players to start a game!");  
+                writeMessageToClient(fd, "INFO", "You need at least " + minimal + " players to start a game! There are: " + to_string(players.size()));  
             }
             else if (gameInProgress) {
                 writeMessageToClient(fd, "INFO", "You need to wait because another game is actually in progress!");
