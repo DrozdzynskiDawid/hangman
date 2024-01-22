@@ -11,3 +11,13 @@ Gdy gra się rozpocznie, serwer losuje słowo, każdy gracz widzi tyle samo miej
 Po zakończeniu gry, gracze wracają do pokoju i mogą rozpocząć kolejną rozgrywkę.
 
 ## Autorzy: Dawid Drożdżyński 151867, Wiktoria Dębowska 151874
+
+
+### Przydatne linki lub komendy do setup:
+Instalacja qt na open suse: https://wiki.qt.io/Install_Qt_5_on_openSUSE
+
+Instalacja gcc, cmake, make na open suse: zypper install --type pattern devel_basis
+
+Instalacja VSC -||-: https://owlhowto.com/how-to-install-visual-studio-code-on-opensuse/
+
+Instalacja widgetów na qt6 -||-: zypper in qt6-widgets-devel
